@@ -3,7 +3,7 @@ use pinocchio::{
     ProgramResult,
 };
 
-use crate::instruction::{process_intialize, SwitchedInstruction};
+use crate::instruction::{process_create_streamer, process_intialize, SwitchedInstruction};
 
 mod instruction;
 mod state;
@@ -23,6 +23,7 @@ pub fn process_instruction(
 
     match SwitchedInstruction::try_from(discriminator)? {
         SwitchedInstruction::Initialize => process_intialize(accounts, data)?,
+        SwitchedInstruction::CreateStreamer => process_create_streamer(accounts, data)?,
         _ => return Err(ProgramError::InvalidInstructionData),
     }
     Ok(())

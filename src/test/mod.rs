@@ -101,12 +101,12 @@ mod tests {
         (svm, reusable_state)
     }
 
-    #[test]
-    pub fn create_global_state() -> Result<(), Error> {
-        let (mut svm, reusable_state) = setup();
-
+    pub fn handle_create_global_state(
+        svm: &mut LiteSVM,
+        reusable_state: &ReusableState,
+    ) -> Result<(), Error> {
         let mint = reusable_state.mint;
-        let payer = reusable_state.admin;
+        let payer = &reusable_state.admin;
         let treasury_ata = reusable_state.treasury;
         let ata_id = reusable_state.ata_program_id;
         let token_program = reusable_state.token_program_id;
@@ -144,23 +144,92 @@ mod tests {
         // Send the transaction and capture the result
         let tx = svm.send_transaction(transaction).unwrap();
 
-        // msg!("tx logs: {:#?}", tx.logs);
-        msg!("\nInit transaction sucessful");
-        msg!("CUs Consumed: {}", tx.compute_units_consumed);
-
         let global_state_from_svm = svm.get_account(&reusable_state.global_state.0).unwrap();
         let parsed_account = bytemuck::from_bytes::<GlobalState>(&global_state_from_svm.data);
 
         assert!(
             pubkey_eq(
-                &treasury_ata.to_bytes(),
+                &reusable_state.treasury.to_bytes(),
                 &parsed_account.plaftorm_fee_account
             ),
             "Broo the accounts are not the same"
         );
 
-        println!("here's the data onchain: {:?}", parsed_account);
+        // println!("here's the data onchain: {:?}", parsed_account);
 
+        // msg!("tx logs: {:#?}", tx.logs);
+        msg!("\nInit transaction sucessful");
+        msg!("CUs Consumed: {}", tx.compute_units_consumed);
+        Ok(())
+    }
+
+    pub fn handle_create_streamer(svm: &mut LiteSVM, reusable_state: &ReusableState) {
+        let broadcaster = &reusable_state.admin;
+        let payer = Keypair::new();
+
+        svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
+            .expect("Airdrop failed");
+
+        let streamer_state =
+            Pubkey::find_program_address(&[b"user".as_ref(), payer.pubkey().as_ref()], &PROGRAM_ID);
+
+        let mint = reusable_state.mint;
+
+        let streamer_ata = CreateAssociatedTokenAccount::new(svm, &payer, &mint)
+            .owner(&streamer_state.0)
+            .send()
+            .unwrap();
+
+        let global_state = reusable_state.global_state;
+        let token_program = reusable_state.token_program_id;
+        let system_program = reusable_state.system_program_id;
+        let ata_id = reusable_state.ata_program_id;
+
+        let ix_data = [vec![SwitchedInstruction::CreateStreamer as u8]].concat();
+
+        // [signer, broadcaster, streamer_state, token_mint, streamer_ata, global_state, system_program, token_program, associated_token_program, rent_sysvar] ;
+
+        let create_ix = Instruction {
+            program_id: program_id(),
+            accounts: vec![
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new(broadcaster.pubkey(), true),
+                AccountMeta::new(streamer_state.0, false),
+                AccountMeta::new(mint, false),
+                AccountMeta::new(streamer_ata, false),
+                AccountMeta::new(global_state.0, false),
+                AccountMeta::new(system_program, false),
+                AccountMeta::new(token_program, false),
+                AccountMeta::new(ata_id, false),
+                AccountMeta::new(Rent::id(), false),
+            ],
+            data: ix_data,
+        };
+
+        let message = Message::new(&[create_ix], Some(&broadcaster.pubkey()));
+        let recent_blockhash = svm.latest_blockhash();
+
+        let transaction = Transaction::new(&[&broadcaster, &payer], message, recent_blockhash);
+
+        // Send the transaction and capture the result
+        let tx = svm.send_transaction(transaction).unwrap();
+        // msg!("tx logs: {:#?}", tx.logs);
+        msg!("\nInit transaction sucessful");
+        msg!("CUs Consumed: {}", tx.compute_units_consumed);
+    }
+
+    #[test]
+    pub fn create_global_state() -> Result<(), Error> {
+        let (mut svm, reusable_state) = setup();
+        handle_create_global_state(&mut svm, &reusable_state);
+        Ok(())
+    }
+
+    #[test]
+    pub fn create_streamer() -> Result<(), Error> {
+        let (mut svm, reusable_state) = setup();
+        handle_create_global_state(&mut svm, &reusable_state);
+        handle_create_streamer(&mut svm, &reusable_state);
         Ok(())
     }
 }
