@@ -7,9 +7,10 @@ use crate::instruction::{process_intialize, SwitchedInstruction};
 
 mod instruction;
 mod state;
+mod test;
 
 entrypoint!(process_instruction);
-pinocchio_pubkey::declare_id!("27abzM8KfWuiYyiy6T3Dv1EeJWSPuBK7DDjtBQoapEfP");
+pinocchio_pubkey::declare_id!("E9j22LsobSzd7D9trJ8hrE1tSLY3wP7AzJZX5DWnPY3y");
 
 pub fn process_instruction(
     program_id: &Pubkey,

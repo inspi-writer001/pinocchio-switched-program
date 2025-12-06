@@ -1,4 +1,5 @@
 use bytemuck::{Pod, Zeroable};
+#[allow(unused_imports)]
 use pinocchio::{
     account_info::AccountInfo,
     instruction::{Seed, Signer},
@@ -9,6 +10,7 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::{Mint, TokenAccount};
 
+#[allow(unused_imports)]
 use crate::state::{global_state, GlobalState};
 
 #[repr(C)]
@@ -17,6 +19,7 @@ pub struct InitializeSwitched {
     pub fee_bps: u16,
 }
 
+#[allow(unused)]
 impl InitializeSwitched {
     pub fn to_bytes(&self) -> Vec<u8> {
         bytemuck::bytes_of(self).to_vec()
@@ -31,6 +34,10 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
     else {
         return Err(pinocchio::program_error::ProgramError::NotEnoughAccountKeys);
     };
+
+    // let mut some_array = [0u8; 2];
+    // some_array.copy_from_slice(&data[0..2]);
+    // let ix_dataa: [u8; 2] = some_array;
 
     let ix_data = bytemuck::try_pod_read_unaligned::<InitializeSwitched>(data)
         .map_err(|_| pinocchio::program_error::ProgramError::InvalidInstructionData)?;
@@ -67,6 +74,7 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
 
     // calculate account rent
     let rent_state = Rent::from_account_info(rent_sysvar)?;
+    // let rent_state = Rent::get()?;
 
     let mininum_balance = rent_state.minimum_balance(GlobalState::LEN);
 
@@ -88,6 +96,7 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
 
     // write mutably to account
     let state_data = &mut global_state.try_borrow_mut_data()?;
+
     let global_state_as_state_data = &mut bytemuck::from_bytes_mut::<GlobalState>(state_data);
 
     global_state_as_state_data.admin = *signer.key();

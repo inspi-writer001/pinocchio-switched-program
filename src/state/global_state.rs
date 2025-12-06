@@ -17,4 +17,8 @@ impl GlobalState {
     pub fn to_bytes(&self) -> Vec<u8> {
         bytemuck::bytes_of(self).to_vec()
     }
+
+    pub fn better_to_bytes(&self) -> Vec<u8> {
+        self.to_bytes()
+    }
 }
