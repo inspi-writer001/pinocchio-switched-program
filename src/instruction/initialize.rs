@@ -1,4 +1,5 @@
 use bytemuck::{Pod, Zeroable};
+use pinocchio::pubkey::pubkey_eq;
 #[allow(unused_imports)]
 use pinocchio::{
     account_info::AccountInfo,
@@ -10,6 +11,7 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::{Mint, TokenAccount};
 
+use crate::require;
 #[allow(unused_imports)]
 use crate::state::{global_state, GlobalState};
 
@@ -66,11 +68,23 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
     // assert that global_state computed offchain is same as the one deriving onchain
     let (derived_pda, bump) = pubkey::find_program_address(&[b"global_state"], &crate::ID);
 
-    assert_eq!(
-        &derived_pda,
-        global_state.key(),
+    // assert_eq!(
+    //     &derived_pda,
+    //     global_state.key(),
+    //     "Global state does not match"
+    // );
+
+    assert!(
+        pubkey_eq(&derived_pda, global_state.key()),
         "Global state does not match"
-    );
+    ); // Most CU efficient
+
+    // require!(pubkey_eq(&derived_pda, global_state.key()));
+
+    // require!(
+    //     pubkey_eq(&derived_pda, global_state.key()),
+    //     "Global state does not match"
+    // );
 
     // calculate account rent
     let rent_state = Rent::from_account_info(rent_sysvar)?;

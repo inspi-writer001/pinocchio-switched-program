@@ -35,3 +35,18 @@ impl TryFrom<&u8> for SwitchedInstruction {
         }
     }
 }
+
+#[macro_export]
+macro_rules! require {
+    ($condition:expr) => {
+        if !$condition {
+            return Err(pinocchio::program_error::ProgramError::InvalidArgument);
+        }
+    };
+    ($condition:expr, $msg:expr) => {
+        if !$condition {
+            pinocchio_log::log!($msg);
+            return Err(pinocchio::program_error::ProgramError::InvalidArgument);
+        }
+    };
+}
